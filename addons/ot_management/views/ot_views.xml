@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<odoo>
+    <data>
+        <menuitem
+            id="ot_menu_root"
+            name="OT Management"/>
+        <menuitem
+            id="ot_registration_menu"
+            name="My OT Registration"
+            parent="ot_menu_root"/>
+
+        <record
+            id="ot_registration_action"
+            model="ir.actions.act_window">
+            <field name="name">Registration</field>
+            <field name="res_model">ot.registration</field>
+            <field name="view_mode">tree,form</field>
+        </record>
+
+        <record
+            id="ot_request_line_action"
+            model="ir.actions.act_window">
+            <field name="name">Request Lines</field>
+            <field name="res_model">ot.request.line</field>
+            <field name="view_mode">tree,form</field>
+        </record>
+
+        <menuitem
+            id="ot_registration_details"
+            name="Registration Details"
+            parent="ot_registration_menu"
+            action="ot_registration_action"/>
+        <menuitem
+            id="ot_request_lines"
+            name="Request Lines"
+            parent="ot_registration_menu"
+            action="ot_request_line_action"/>
+    </data>
+</odoo>
