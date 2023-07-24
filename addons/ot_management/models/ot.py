@@ -6,6 +6,7 @@ class Registration(models.Model):
     _description = 'Registration information'
 
     name = fields.Char(required=True)
+    state = fields.Selection([('draft','Draft'),('approved','Approved')])
 
     request_line_ids = fields.One2many('ot.request.line', 'registration_id')
     # user_id = fields.Many2one('res.users', default=lambda self: self.env.user)
@@ -21,6 +22,7 @@ class Registration(models.Model):
     #             record.approver_id = record.project_id.manager_id
     #
     # dl_id = fields.Many2one('hr.employee', readonly=True)
+
 
 class RequestLine(models.Model):
     _name = 'ot.request.line'
