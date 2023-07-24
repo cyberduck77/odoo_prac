@@ -5,11 +5,12 @@ class Registration(models.Model):
     _name = 'ot.registration'
     _description = 'Registration information'
 
+    name = fields.Char(required=True)
+
+    request_line_ids = fields.One2many('ot.request.line', 'registration_id')
     # user_id = fields.Many2one('res.users', default=lambda self: self.env.user)
-    # employee_id = fields.Many2one('hr.employee', readonly=True)
+    # employee_id = fields.Many2one('hr.employee', related=user_id.empl)
     # project_id = fields.Many2one('project.project', required=True)
-    # request_line_ids = fields.One2many('ot.request.line', 'registration_id')
-    #
     # approver_id = fields.Many2one('hr.employee', compute='_compute_approver', required=True, store=True, readonly=False)
     # @api.depends('dl_id', 'project_id')
     # def _compute_approver(self):
@@ -25,7 +26,9 @@ class RequestLine(models.Model):
     _name = 'ot.request.line'
     _description = 'Request line information'
 
-    # registration_id = fields.Many2one('ot.registration')
+    name = fields.Char(required=True)
+
+    registration_id = fields.Many2one('ot.registration')
     # from_date = fields.Datetime()
     # to_date = fields.Datetime()
     # ot_category = fields.Selection()

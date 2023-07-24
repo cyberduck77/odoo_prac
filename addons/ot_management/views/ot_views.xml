@@ -10,11 +10,70 @@
             parent="ot_menu_root"/>
 
         <record
+            id="ot_registration_tree"
+            model="ir.ui.view">
+            <field name="name">ot.registration.tree</field>
+            <field name="model">ot.registration</field>
+            <field name="arch" type="xml">
+                <tree>
+                    <field name="name"/>
+                </tree>
+            </field>
+        </record>
+
+        <record
+            id="ot_registration_form"
+            model="ir.ui.view">
+            <field name="name">ot.registration.form</field>
+            <field name="model">ot.registration</field>
+            <field name="arch" type="xml">
+                <form>
+                    <sheet>
+                        <group>
+                            <field name="name"/>
+                        </group>
+                        <notebook>
+                            <page string="Request Line">
+                                <field name="request_line_ids"/>
+                            </page>
+                        </notebook>
+                    </sheet>
+                </form>
+            </field>
+        </record>
+
+        <record
             id="ot_registration_action"
             model="ir.actions.act_window">
             <field name="name">Registration</field>
             <field name="res_model">ot.registration</field>
             <field name="view_mode">tree,form</field>
+        </record>
+
+        <record
+            id="ot_request_line_tree"
+            model="ir.ui.view">
+            <field name="name">ot.request.line.tree</field>
+            <field name="model">ot.request.line</field>
+            <field name="arch" type="xml">
+                <tree>
+                    <field name="name"/>
+                </tree>
+            </field>
+        </record>
+
+        <record
+            id="ot_request_line_form"
+            model="ir.ui.view">
+            <field name="name">ot.request.line.form</field>
+            <field name="model">ot.request.line</field>
+            <field name="arch" type="xml">
+                <form>
+                    <group>
+                        <field name="name"/>
+                    </group>
+                </form>
+            </field>
         </record>
 
         <record
