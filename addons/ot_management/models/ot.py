@@ -6,22 +6,32 @@ class Registration(models.Model):
     _description = 'Registration information'
 
     name = fields.Char(required=True)
-    state = fields.Selection([('draft','Draft'),('approved','Approved')])
+    state = fields.Selection(
+        [('draft','Draft'),('to approve','To Approve'),('pm approved','PM Approved'),
+         ('dl approved','DL Approved'),('refused','Refused')]
+    )
 
+    def _get_employee_id(self):
+        employee = self.env['hr.employee'].search([('user_id','=',self.env.uid)], limit=1)
+        return employee.id
+    employee_id = fields.Many2one('hr.employee', default=_get_employee_id, readonly=True, required=True)
+    lead_id = fields.Many2one('hr.employee', string='Department Lead', related='employee_id.parent_id', store=True, readonly=True, required=True)
+
+    @api.depends('lead_id', 'project_id')
+    def _compute_approver(self):
+        for record in self:
+            if len(record.project_id) == 0:
+                record.approve_id = record.lead_id
+    approve_id = fields.Many2one('hr.employee', string='Approver', compute='_compute_approver', store=True, readonly=False, required=True)
+    project_id = fields.Many2one('project.project')
     request_line_ids = fields.One2many('ot.request.line', 'registration_id')
-    # user_id = fields.Many2one('res.users', default=lambda self: self.env.user)
-    # employee_id = fields.Many2one('hr.employee', related=user_id.empl)
-    # project_id = fields.Many2one('project.project', required=True)
-    # approver_id = fields.Many2one('hr.employee', compute='_compute_approver', required=True, store=True, readonly=False)
-    # @api.depends('dl_id', 'project_id')
-    # def _compute_approver(self):
-    #     for record in self:
-    #         if len(record.project_id) == 0:
-    #             record.approver_id = record.dl_id
-    #         else:
-    #             record.approver_id = record.project_id.manager_id
-    #
-    # dl_id = fields.Many2one('hr.employee', readonly=True)
+
+    @api.depends('request_line_ids')
+    def _compute_total_ot(self):
+        for record in self:
+            record.total_ot = len(record.request_line_ids)
+    total_ot = fields.Integer(string='Total OT', compute='_compute_total_ot', store=True)
+    ot_month = fields.Date(string='OT Month')
 
 
 class RequestLine(models.Model):
@@ -46,10 +56,8 @@ class RequestLine(models.Model):
 class Employee(models.Model):
     _inherit = 'hr.employee'
 
-    # registration_ids = fields.One2many('ot.registration', 'employee_id')
+    # registration_id = fields.Many2one('ot.registration', 'employee_ids')
 
 
 class Project(models.Model):
     _inherit = 'project.project'
-
-

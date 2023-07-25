@@ -31,8 +31,19 @@
                     <header>
                         <field name="state" widget="statusbar"/>
                     </header>
-                    <group>
-                        <field name="name"/>
+                    <group col="2">
+                        <group colspan="1">
+                            <field name="name" invisible="1"/>
+                            <field name="project_id"/>
+                            <field name="approve_id"/>
+                            <field name="ot_month"/>
+                        </group>
+                        <group colspan="1">
+                            <field name="employee_id"/>
+                            <field name="lead_id"/>
+                            <field name="create_date" string="Created Date"/>
+                            <field name="total_ot"/>
+                        </group>
                     </group>
                     <notebook>
                         <page string="Request Line">
