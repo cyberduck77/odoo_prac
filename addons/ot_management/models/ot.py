@@ -65,7 +65,12 @@ class Registration(models.Model):
     total_ot = fields.Integer(string='Total OT',
                               compute='_compute_total_ot',
                               store=True)
-    ot_month = fields.Date(string='OT Month')
+
+    @api.depends('request_line_ids')
+    def _compute_ot_month(self):
+        for record in self:
+            record.ot_month = fields.Date.to_date(record.request_line_ids[1].start_time)
+    ot_month = fields.Date(string='OT Month', compute='_compute_ot_month')
 
     def submit_draft(self):
         for record in self:
@@ -86,8 +91,8 @@ class RequestLine(models.Model):
     _description = 'Request line information'
 
     name = fields.Char(related='registration_id.name')
-    start_time = fields.Datetime()
-    end_time = fields.Datetime()
+    start_time = fields.Datetime(default=fields.Datetime().today(), required=True)
+    end_time = fields.Datetime(default=fields.Datetime().today(), required=True)
     ot_category = fields.Selection(
         [('undefined','Undefined'),
          ('ordinary day', 'Ordinary day'),
@@ -117,6 +122,12 @@ class RequestLine(models.Model):
         for record in self:
             record.is_intern = True
     is_intern = fields.Boolean(compute='_compute_intern')
+
+    # @api.model
+    # def create(self, vals_list):
+    #     registration = self.env['ot.registration'].browse(vals_list['registration_id'])
+    #     registration.ot_month = fields.Date().to_date(vals_list['start_time'])
+    #     return super().create(vals_list)
 
 
 class Employee(models.Model):
