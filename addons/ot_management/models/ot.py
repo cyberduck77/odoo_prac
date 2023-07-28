@@ -1,4 +1,5 @@
 from odoo import models, fields, api
+from odoo.exceptions import ValidationError
 
 
 class Registration(models.Model):
@@ -54,7 +55,8 @@ class Registration(models.Model):
                                  readonly=False,
                                  required=True)
     request_line_ids = fields.One2many('ot.request.line',
-                                       'registration_id')
+                                       'registration_id',
+                                       ondelete='cascade')
 
     @api.depends('request_line_ids')
     def _compute_total_ot(self):
@@ -70,6 +72,13 @@ class Registration(models.Model):
             if record.state == 'draft':
                 record.state = 'to approve'
         return True
+
+    @api.model
+    def create(self, vals_list):
+        res = super().create(vals_list)
+        if not res.request_line_ids:
+            raise ValidationError('At least one corresponding request line must be created')
+        return res
 
 
 class RequestLine(models.Model):
