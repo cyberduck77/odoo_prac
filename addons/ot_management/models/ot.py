@@ -105,8 +105,8 @@ class RequestLine(models.Model):
         related='registration_id.state',
         store=True)
     late_approved = fields.Boolean()
-    hr_notes = fields.Char()
-    attendance_notes = fields.Char()
+    hr_notes = fields.Text()
+    attendance_notes = fields.Text()
     warning = fields.Char()
     registration_id = fields.Many2one('ot.registration')
     employee_id = fields.Many2one(related='registration_id.employee_id')
