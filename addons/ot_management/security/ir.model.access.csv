@@ -2,3 +2,4 @@ id,name,model_id:id,group_id:id,perm_read,perm_write,perm_create,perm_unlink
 access_ot_registration,ot_management.ot_registration,model_ot_registration,base.group_user,1,1,1,1
 access_ot_request_line,ot_management.ot_request_line,model_ot_request_line,base.group_user,1,1,1,1
 access_hr_employee,ot_management.hr_employee,model_hr_employee,base.group_user,1,1,1,1
+access_project_project,ot_management.project_project,model_project_project,base.group_user,1,1,1,1
