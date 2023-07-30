@@ -57,20 +57,15 @@ class Registration(models.Model):
     request_line_ids = fields.One2many('ot.request.line',
                                        'registration_id',
                                        ondelete='cascade')
-
-    @api.depends('request_line_ids')
-    def _compute_total_ot(self):
-        for record in self:
-            record.total_ot = len(record.request_line_ids)
-    total_ot = fields.Integer(string='Total OT',
-                              compute='_compute_total_ot',
-                              store=True)
+    total_ot = fields.Integer('Total OT', readonly=True)
 
     @api.depends('request_line_ids')
     def _compute_ot_month(self):
         for record in self:
-            record.ot_month = fields.Date.to_date(record.request_line_ids[1].start_time)
-    ot_month = fields.Date(string='OT Month', compute='_compute_ot_month')
+            if record.request_line_ids:
+                req_line = self.env['ot.request.line'].browse(record.request_line_ids.ids, limit=1)
+                record.ot_month = req_line.start_time
+    ot_month = fields.Date('OT Month', compute='_compute_ot_month')
 
     def submit_draft(self):
         for record in self:
@@ -122,12 +117,6 @@ class RequestLine(models.Model):
         for record in self:
             record.is_intern = True
     is_intern = fields.Boolean(compute='_compute_intern')
-
-    # @api.model
-    # def create(self, vals_list):
-    #     registration = self.env['ot.registration'].browse(vals_list['registration_id'])
-    #     registration.ot_month = fields.Date().to_date(vals_list['start_time'])
-    #     return super().create(vals_list)
 
 
 class Employee(models.Model):
