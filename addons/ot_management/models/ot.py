@@ -168,18 +168,18 @@ class RequestLine(models.Model):
 
     is_intern = fields.Boolean(compute='_compute_intern')
 
-    @api.constrains('start_time', 'end_time')
-    def _check_valid_date(self):
-        for record in self:
-            float_end = float_time(record.end_time.strftime('%H:%M'))
-            float_start = float_time(record.start_time.strftime('%H:%M'))
-            float_done = float_time('17:30')
-            if record.start_time.date() != record.end_time.date() or float_start < float_done:
-                raise ValidationError('Invalid OT')
-            elif float_end - float_start < 1:
-                raise ValidationError('OT hours must be larger than 0')
-            elif (record.end_time - fields.Datetime.now()).total_seconds() > 0:
-                raise ValidationError('Cannot create a future plan for OT')
+    # @api.constrains('start_time', 'end_time')
+    # def _check_valid_date(self):
+    #     for record in self:
+    #         float_end = float_time(record.end_time.strftime('%H:%M'))
+    #         float_start = float_time(record.start_time.strftime('%H:%M'))
+    #         float_done = float_time('17:30')
+    #         if record.start_time.date() != record.end_time.date() or float_start < float_done:
+    #             raise ValidationError('Invalid OT')
+    #         elif float_end - float_start < 1:
+    #             raise ValidationError('OT hours must be larger than 0')
+    #         elif (record.end_time - fields.Datetime.now()).total_seconds() > 0:
+    #             raise ValidationError('Cannot create a future plan for OT')
 
 
 class Employee(models.Model):
