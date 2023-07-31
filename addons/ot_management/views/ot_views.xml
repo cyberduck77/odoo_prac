@@ -56,7 +56,7 @@
                                 <tree editable="bottom" decoration-danger="1">
                                     <field name="start_time"/>
                                     <field name="end_time"/>
-                                    <field name="ot_category"/>
+                                    <field name="ot_category" readonly="1" force_save="1"/>
                                     <field name="from_home"/>
                                     <field name="ot_hours"/>
                                     <field name="job_taken"/>

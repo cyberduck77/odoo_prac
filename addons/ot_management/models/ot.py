@@ -78,9 +78,9 @@ class Registration(models.Model):
     def _compute_ot_month(self):
         for record in self:
             if record.request_line_ids:
-                record.ot_month = record.request_line_ids[0].start_time.date()
+                record.ot_month = record.request_line_ids[0].start_time.strftime('%m/%Y')
 
-    ot_month = fields.Date('OT month', compute='_compute_ot_month', store=True)
+    ot_month = fields.Char('OT month', compute='_compute_ot_month')
 
     def submit_draft(self):
         for record in self:
@@ -101,6 +101,12 @@ class Registration(models.Model):
                 raise ValidationError('At least one corresponding request line must be created')
 
 
+def float_time(value):
+    vals = value.split(':')
+    res = float(vals[0]) + float(vals[1]) / 60
+    return res
+
+
 class RequestLine(models.Model):
     _name = 'ot.request.line'
     _description = 'Request line information'
@@ -109,22 +115,26 @@ class RequestLine(models.Model):
     start_time = fields.Datetime('From', default=fields.Datetime().today(), required=True)
     end_time = fields.Datetime('To', default=fields.Datetime().today(), required=True)
 
-    @api.depends('start_time', 'end_time')
-    def _compute_ot_category(self):
+    @api.onchange('start_time', 'end_time')
+    def _onchange_ot_category(self):
         for record in self:
-            if record.start_time.strftime('%a') == "Sun":
-                record.ot_category = 'weekend'
+            float_end = float_time(record.end_time.strftime('%H:%M'))
+            float_start = float_time(record.start_time.strftime('%H:%M'))
+            float_done = float_time('17:30')
+            if float_end - float_start >= 1 or float_start > float_done:
+                if record.start_time.strftime('%a') in ['Sat', 'Sun']:
+                    record.ot_category = 'weekend'
+                else:
+                    record.ot_category = 'workday'
             else:
-                record.ot_category = 'workday'
+                record.ot_category = 'undefined'
 
     ot_category = fields.Selection(
         [('undefined', 'Undefined'),
          ('weekend', 'Weekend'),
          ('workday', 'Workday')],
         'OT category',
-        default='undefined',
-        compute='_compute_ot_category',
-        store=True
+        default=False
     )
     from_home = fields.Boolean(string='WFH')
 
@@ -158,18 +168,18 @@ class RequestLine(models.Model):
 
     is_intern = fields.Boolean(compute='_compute_intern')
 
-    # @api.constrains('start_time', 'end_time')
-    # def _check_valid_date(self):
-    #     for record in self:
-    #         from_time = datetime.strptime(str(record.start_time), "%Y-%m-%d %H:%M:%S")
-    #         from_compared = from_time.hour * 60 + from_time.minute
-    #         if record.start_time.date() != record.end_time.date() or \
-    #                 from_compared - 1050 <= 0:
-    #             raise ValidationError('Invalid OT')
-    #         elif (record.end_time - record.start_time).total_seconds() < 3600:
-    #             raise ValidationError('OT hours must be larger than 0')
-    #         elif (record.end_time - fields.Datetime.now()).total_seconds() > 0:
-    #             raise ValidationError('Cannot create a future plan for OT')
+    @api.constrains('start_time', 'end_time')
+    def _check_valid_date(self):
+        for record in self:
+            float_end = float_time(record.end_time.strftime('%H:%M'))
+            float_start = float_time(record.start_time.strftime('%H:%M'))
+            float_done = float_time('17:30')
+            if record.start_time.date() != record.end_time.date() or float_start < float_done:
+                raise ValidationError('Invalid OT')
+            elif float_end - float_start < 1:
+                raise ValidationError('OT hours must be larger than 0')
+            elif (record.end_time - fields.Datetime.now()).total_seconds() > 0:
+                raise ValidationError('Cannot create a future plan for OT')
 
 
 class Employee(models.Model):
