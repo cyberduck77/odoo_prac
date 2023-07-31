@@ -38,21 +38,22 @@
                     </header>
                     <group col="2">
                         <group colspan="1">
+                            <field name="name" force_save="1" invisible="1"/>
                             <field name="project_id"/>
                             <field name="approve_id"/>
-                            <field name="ot_month" force_save="1"/>
+                            <field name="ot_month"/>
                         </group>
                         <group colspan="1">
                             <field name="employee_id"/>
                             <field name="lead_id"/>
-                            <field name="create_date" string="Created Date"/>
+                            <field name="create_date" string="Created date"/>
                             <field name="total_ot"/>
                         </group>
                     </group>
                     <notebook>
                         <page string="Request Line">
                             <field name="request_line_ids">
-                                <tree editable="bottom">
+                                <tree editable="bottom" decoration-danger="1">
                                     <field name="start_time"/>
                                     <field name="end_time"/>
                                     <field name="ot_category"/>
