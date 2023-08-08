@@ -57,8 +57,7 @@ class Registration(models.Model):
                                  readonly=False,
                                  required=True)
     request_line_ids = fields.One2many('ot.request.line',
-                                       'registration_id',
-                                       ondelete='cascade')
+                                       'registration_id')
 
     @api.depends('request_line_ids')
     def _compute_total_ot(self):
@@ -96,12 +95,6 @@ class Registration(models.Model):
                 raise ValidationError('At least one corresponding request line must be created')
 
 
-def float_time(value):
-    vals = value.split(':')
-    res = float(vals[0]) + float(vals[1]) / 60
-    return res
-
-
 class RequestLine(models.Model):
     _name = 'ot.request.line'
     _description = 'Request line information'
@@ -113,10 +106,8 @@ class RequestLine(models.Model):
     @api.onchange('start_time', 'end_time')
     def _onchange_ot_category(self):
         for record in self:
-            float_end = float_time(record.end_time.strftime('%H:%M'))
-            float_start = float_time(record.start_time.strftime('%H:%M'))
-            float_done = float_time('17:30')
-            if float_end - float_start >= 1 or float_start > float_done:
+            if record.start_time.date() != record.end_time.date() or\
+                    (record.end_time - record.start_time).total_seconds() <= 0:
                 if record.start_time.strftime('%a') in ['Sat', 'Sun']:
                     record.ot_category = 'weekend'
                 else:
@@ -150,7 +141,9 @@ class RequestLine(models.Model):
     hr_notes = fields.Text('HR notes', readonly=True)
     attendance_notes = fields.Text('Attendance notes', readonly=True)
     warning = fields.Char(default='Exceed OT plan', readonly=True)
-    registration_id = fields.Many2one('ot.registration')
+    registration_id = fields.Many2one('ot.registration',
+                                      required=True,
+                                      ondelete='cascade')
     employee_id = fields.Many2one(related='registration_id.employee_id')
     project_id = fields.Many2one(related='registration_id.project_id')
 
