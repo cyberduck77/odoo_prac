@@ -128,7 +128,6 @@ class RequestLine(models.Model):
                     record.ot_category = 'workday'
             else:
                 record.ot_category = 'undefined'
-
     ot_category = fields.Selection(
         [('undefined', 'Undefined'),
          ('weekend', 'Weekend'),
@@ -142,7 +141,6 @@ class RequestLine(models.Model):
     def _compute_ot_hours(self):
         for record in self:
             record.ot_hours = int((record.end_time - record.start_time).total_seconds() / 3600.0)
-
     ot_hours = fields.Integer('OT hours', compute='_compute_ot_hours', store=True)
     job_taken = fields.Char('Job taken', default='N/A', required=True)
     state = fields.Selection(
@@ -170,10 +168,20 @@ class RequestLine(models.Model):
     @api.constrains('start_time', 'end_time')
     def _check_valid_time(self):
         for record in self:
-            if record.end_time - record.start_time < relativedelta(hours=1):
+            if record.start_time.date() != record.end_time.date():
+                raise ValidationError("Invalid OT request time")
 
+    @api.constrains('start_time', 'end_time')
+    def _check_time_positive(self):
+        for record in self:
+            if (record.end_time - record.start_time).total_seconds() <= 0:
+                raise ValidationError("OT hours must be larger than 0")
 
-
+    @api.constrains('end_time')
+    def _check_time_future(self):
+        for record in self:
+            if record.end_time > fields.Datetime.now():
+                raise ValidationError("Cannot plan OT in the future")
 
 
 class Employee(models.Model):
