@@ -27,12 +27,10 @@ class Registration(models.Model):
     def _get_employee_id(self):
         employee = self.env['hr.employee'].search([('user_id', '=', self.env.uid)], limit=1)
         return employee
-
     employee_id = fields.Many2one('hr.employee',
                                   default=_get_employee_id,
                                   readonly=True,
                                   required=True)
-
     lead_id = fields.Many2one(
         'hr.employee',
         'Department lead',
@@ -52,7 +50,6 @@ class Registration(models.Model):
                     record.approve_id = record.lead_id
                 elif record.state == 'dl approved' or record.state == 'refused':
                     record.approve_id = False
-
     approve_id = fields.Many2one('hr.employee',
                                  'Approver',
                                  compute='_compute_approver',
@@ -71,7 +68,6 @@ class Registration(models.Model):
                 for line in record.request_line_ids:
                     res += line.ot_hours
                 record.total_ot = res
-
     total_ot = fields.Integer('Total OT hours', compute='_compute_total_ot', store=True)
 
     @api.depends('request_line_ids')
@@ -79,7 +75,6 @@ class Registration(models.Model):
         for record in self:
             if record.request_line_ids:
                 record.ot_month = record.request_line_ids[0].start_time.strftime('%m/%Y')
-
     ot_month = fields.Char('OT month', compute='_compute_ot_month')
 
     def submit_draft(self):
