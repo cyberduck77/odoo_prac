@@ -80,6 +80,13 @@ class Registration(models.Model):
         for record in self:
             if record.state == 'draft':
                 record.state = 'to approve'
+            mail = self.env['mail.mail'].create({
+                'email_to': '',
+                'subject': 'Testing',
+                'body_html': 'Testing',
+                'notification': True
+            })
+            mail.send()
         return True
 
     @api.model
@@ -106,14 +113,14 @@ class RequestLine(models.Model):
     @api.onchange('start_time', 'end_time')
     def _onchange_ot_category(self):
         for record in self:
-            if record.start_time.date() != record.end_time.date() or\
+            if (record.start_time.date() - record.end_time.date()).total_seconds() != 0 or\
                     (record.end_time - record.start_time).total_seconds() <= 0:
+                record.ot_category = 'undefined'
+            else:
                 if record.start_time.strftime('%a') in ['Sat', 'Sun']:
                     record.ot_category = 'weekend'
                 else:
                     record.ot_category = 'workday'
-            else:
-                record.ot_category = 'undefined'
     ot_category = fields.Selection(
         [('undefined', 'Undefined'),
          ('weekend', 'Weekend'),
@@ -156,7 +163,7 @@ class RequestLine(models.Model):
     @api.constrains('start_time', 'end_time')
     def _check_valid_time(self):
         for record in self:
-            if record.start_time.date() != record.end_time.date():
+            if (record.start_time.date() - record.end_time.date()).total_seconds() != 0:
                 raise ValidationError("Invalid OT request time")
 
     @api.constrains('start_time', 'end_time')
