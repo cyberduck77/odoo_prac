@@ -25,6 +25,7 @@
     # always loaded
     'data': [
         'security/ir.model.access.csv',
+        'data/email_templates_data.xml',
         'views/ot_views.xml'
     ],
     # only loaded in demonstration mode
