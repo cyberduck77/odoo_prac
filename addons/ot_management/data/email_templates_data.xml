@@ -12,7 +12,8 @@
             <field name="lang">${object.employee_id.address_home_id.lang}</field>
             <field name="body_html"><![CDATA[
                 <div style="font-family: 'Lucida Grande', Ubuntu, Arial, Verdana, sans-serif; font-size: 12px; color: rgb(34, 34, 34); background-color: #FFF; ">
-                   Hello ${(object.approve_id.name)}, an OT request have been submitted to you!!!
+                   Hello ${(object.approve_id.name)}, an OT request have been submitted to you!!! <br/>
+                   <a href="${object.getUrl()}">See here!</a>
                 </div>
             ]]></field>
         </record>
@@ -45,7 +46,8 @@
             <field name="lang">${object.approve_id.address_home_id.lang}</field>
             <field name="body_html"><![CDATA[
                 <div style="font-family: 'Lucida Grande', Ubuntu, Arial, Verdana, sans-serif; font-size: 12px; color: rgb(34, 34, 34); background-color: #FFF; ">
-                   Hello ${(object.employee_id.name)}, Your OT request have been submitted by your DL!!!
+                   Hello ${(object.employee_id.name)}, Your OT request have been submitted by your DL!!! <br/>
+                   <a href="${object.getUrl()}">See here!</a>
                 </div>
             ]]></field>
         </record>
@@ -61,7 +63,8 @@
             <field name="lang">${object.approve_id.address_home_id.lang}</field>
             <field name="body_html"><![CDATA[
                 <div style="font-family: 'Lucida Grande', Ubuntu, Arial, Verdana, sans-serif; font-size: 12px; color: rgb(34, 34, 34); background-color: #FFF; ">
-                   Hello ${(object.employee_id.name)}, Your OT request have been refused!!!
+                   Hello ${(object.employee_id.name)}, Your OT request have been refused!!! <br/>
+                   <a href="${object.getUrl()}">See here!</a>
                 </div>
             ]]></field>
         </record>
