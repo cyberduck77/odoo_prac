@@ -28,7 +28,8 @@
             <field name="lang">${object.approve_id.address_home_id.lang}</field>
             <field name="body_html"><![CDATA[
                 <div style="font-family: 'Lucida Grande', Ubuntu, Arial, Verdana, sans-serif; font-size: 12px; color: rgb(34, 34, 34); background-color: #FFF; ">
-                   Hello ${(object.employee_id.name)}, Your OT request have been submitted by your PM!!!
+                   Hello ${(object.employee_id.name)}, Your OT request have been submitted by your PM!!! <br/>
+                   <a href="">See here!</a>
                 </div>
             ]]></field>
         </record>
