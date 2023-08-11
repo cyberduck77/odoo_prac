@@ -107,6 +107,11 @@ class Registration(models.Model):
                 template.send_mail(record.id, force_send=True)
         return True
 
+    def getUrl(self):
+        base = self.env['ir.config_parameter'].get_param('web.base.url')
+        url_res = base + '/web#id=%d&view_type=form&model=%s' % (self.id, self._name)
+        return url_res
+
     # @api.model
     # def create(self, values):
     #     # if 'request_line_ids' not in values:
