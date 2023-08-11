@@ -1,6 +1,6 @@
 from odoo import models, fields, api
 from odoo.exceptions import ValidationError
-from dateutil.relativedelta import relativedelta
+from odoo.tools import float_round
 
 
 class Registration(models.Model):
@@ -15,9 +15,9 @@ class Registration(models.Model):
     name = fields.Char(default='')
     state = fields.Selection(
         [('draft', 'Draft'),
-         ('to approve', 'To Approve'),
-         ('pm approved', 'PM Approved'),
-         ('dl approved', 'DL Approved'),
+         ('to_approve', 'To Approve'),
+         ('pm_approved', 'PM Approved'),
+         ('dl_approved', 'DL Approved'),
          ('refused', 'Refused')],
         default='draft',
         required=True
@@ -34,25 +34,24 @@ class Registration(models.Model):
     lead_id = fields.Many2one(
         'hr.employee',
         'Department lead',
-        related='employee_id.parent_id')
+        related='employee_id.department_id.manager_id')
 
     @api.depends('lead_id', 'project_id')
-    def _compute_approver(self):
+    def _compute_approve(self):
         for record in self:
-            if not record.project_id:
-                record.approve_id = record.lead_id
-            else:
-                if record.state == 'draft' or record.state == 'to approve':
+            if record.project_id:
+                if record.state == 'draft' or record.state == 'to_approve':
                     record.approve_id = self.env['hr.employee'].search(
                         [('user_id', '=', record.project_id.user_id.id)],
-                        limit=1)
-                elif record.state == 'pm approved':
+                        limit=1
+                    )
+                elif record.state == 'pm_approved':
                     record.approve_id = record.lead_id
-                elif record.state == 'dl approved' or record.state == 'refused':
-                    record.approve_id = False
+                elif record.state == 'dl_approved' or record.state == 'refused':
+                        record.approve_id = False
     approve_id = fields.Many2one('hr.employee',
                                  'Approver',
-                                 compute='_compute_approver',
+                                 compute='_compute_approve',
                                  store=True,
                                  readonly=False,
                                  required=True)
@@ -67,7 +66,7 @@ class Registration(models.Model):
                 for line in record.request_line_ids:
                     res += line.ot_hours
                 record.total_ot = res
-    total_ot = fields.Integer('Total OT hours', compute='_compute_total_ot', store=True)
+    total_ot = fields.Float('Total OT hours', compute='_compute_total_ot', store=True)
 
     @api.depends('request_line_ids')
     def _compute_ot_month(self):
@@ -79,23 +78,43 @@ class Registration(models.Model):
     def submit_draft(self):
         for record in self:
             if record.state == 'draft':
-                record.state = 'to approve'
-            mail = self.env['mail.mail'].create({
-                'email_to': '',
-                'subject': 'Testing',
-                'body_html': 'Testing',
-                'notification': True
-            })
-            mail.send()
+                record.state = 'to_approve'
+                template = self.env.ref('ot_management.submit_ot_mail_template')
+                template.send_mail(record.id, force_send=True)
         return True
 
-    @api.model
-    def create(self, values):
-        if 'request_line_ids' not in values:
-            values['request_line_ids'] = False
-        return super(Registration, self).create(values)
+    def pm_approve(self):
+        for record in self:
+            if record.state == 'to_approve':
+                record.state = 'pm_approved'
+                template = self.env.ref('ot_management.pm_approve_mail_template')
+                template.send_mail(record.id, force_send=True)
+        return True
 
-    @api.constrains('request_line_ids')
+    def dl_approve(self):
+        for record in self:
+            if record.state == 'pm_approved':
+                record.state = 'dl_approved'
+                template = self.env.ref('ot_management.dl_approve_mail_template')
+                template.send_mail(record.id, force_send=True)
+        return True
+
+    def action_refuse(self):
+        for record in self:
+            if record.state == 'pm_approved' or record.state == 'to_approve':
+                record.state = 'refused'
+                template = self.env.ref('ot_management.refuse_mail_template')
+                template.send_mail(record.id, force_send=True)
+        return True
+
+    # @api.model
+    # def create(self, values):
+    #     # if 'request_line_ids' not in values:
+    #     #     values['request_line_ids'] = False
+    #     res = super(Registration, self).create(values)
+    #     return res
+
+    @api.constrains('request_line_ids', 'employee_id')
     def _check_request_lines(self):
         for record in self:
             if not record.request_line_ids:
@@ -126,21 +145,21 @@ class RequestLine(models.Model):
          ('weekend', 'Weekend'),
          ('workday', 'Workday')],
         'OT category',
-        default=False
+        default='undefined'
     )
     from_home = fields.Boolean(string='WFH')
 
     @api.depends('start_time', 'end_time')
     def _compute_ot_hours(self):
         for record in self:
-            record.ot_hours = int((record.end_time - record.start_time).total_seconds() / 3600.0)
-    ot_hours = fields.Integer('OT hours', compute='_compute_ot_hours', store=True)
+            record.ot_hours = float_round((record.end_time - record.start_time).total_seconds() / 3600.0, 2)
+    ot_hours = fields.Float('OT hours', compute='_compute_ot_hours', store=True)
     job_taken = fields.Char('Job taken', default='N/A', required=True)
     state = fields.Selection(
         [('draft', 'Draft'),
-         ('to approve', 'To Approve'),
-         ('pm approved', 'PM Approved'),
-         ('dl approved', 'DL Approved'),
+         ('to_approve', 'To Approve'),
+         ('pm_approved', 'PM Approved'),
+         ('dl_approved', 'DL Approved'),
          ('refused', 'Refused')],
         related='registration_id.state',
         store=True)

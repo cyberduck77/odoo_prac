@@ -33,7 +33,10 @@
             <field name="arch" type="xml">
                 <form>
                     <header>
-                        <button name="submit_draft" type="object" icon="fa-reply text-warning" string="Submit"/>
+                        <button name="submit_draft" type="object" icon="fa-reply text-warning" string="Submit" states="draft"/>
+                        <button name="pm_approve" type="object" string="PM Approve" states="to_approve"/>
+                        <button name="dl_approve" type="object" string="DL Approve" states="pm_approved"/>
+                        <button name="action_refuse" type="object" string="Refuse" states="to_approve,pm_approved"/>
                         <field name="state" widget="statusbar"/>
                     </header>
                     <group col="2">
