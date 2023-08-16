@@ -51,10 +51,11 @@
             <field name="arch" type="xml">
                 <form>
                     <header>
-                        <button name="submit_draft" type="object" icon="fa-reply text-warning" string="Submit" states="draft"/>
-                        <button name="pm_approve" type="object" string="PM Approve" states="to_approve"/>
-                        <button name="dl_approve" type="object" string="DL Approve" states="pm_approved"/>
-                        <button name="action_refuse" type="object" string="Refuse" states="to_approve,pm_approved"/>
+                        <button name="action_submit_draft" type="object" icon="fa-reply text-warning" string="Submit" attrs="{'invisible': [('button_visible', 'in', [1, 2, -1])]}"/>
+                        <button name="action_pm_approve" type="object" class="btn btn-primary" string="PM Approve" attrs="{'invisible': [('button_visible', 'in', [0, 2, -1])]}"/>
+                        <button name="action_dl_approve" type="object" class="btn btn-primary" string="DL Approve" attrs="{'invisible': [('button_visible', 'in', [1, 0, -1])]}"/>
+                        <button name="action_refuse" type="object" class="btn btn-primary" string="Refuse" attrs="{'invisible': [('button_visible', 'in', [0, -1])]}"/>
+                        <field name="button_visible" invisible="1"/>
                         <field name="state" widget="statusbar"/>
                     </header>
                     <group col="2">
@@ -74,7 +75,9 @@
                     <notebook>
                         <page string="Request Line">
                             <field name="request_line_ids">
-                                <tree editable="bottom" decoration-danger="1">
+                                <tree editable="bottom"
+                                      decoration-danger="state in ('draft', 'to_approve', 'refused')"
+                                      decoration-success="state in ('pm_approved', 'dl_approved')">
                                     <field name="start_time"/>
                                     <field name="end_time"/>
                                     <field name="ot_category" readonly="1" force_save="1"/>
