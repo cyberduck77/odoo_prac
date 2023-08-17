@@ -51,11 +51,26 @@
             <field name="arch" type="xml">
                 <form>
                     <header>
-                        <button name="action_submit_draft" type="object" icon="fa-reply text-warning" string="Submit" attrs="{'invisible': [('button_visible', 'in', [1, 2, -1])]}"/>
-                        <button name="action_pm_approve" type="object" class="btn btn-primary" string="PM Approve" attrs="{'invisible': [('button_visible', 'in', [0, 2, -1])]}"/>
-                        <button name="action_dl_approve" type="object" class="btn btn-primary" string="DL Approve" attrs="{'invisible': [('button_visible', 'in', [1, 0, -1])]}"/>
-                        <button name="action_refuse" type="object" class="btn btn-primary" string="Refuse" attrs="{'invisible': [('button_visible', 'in', [0, -1])]}"/>
-                        <field name="button_visible" invisible="1"/>
+<!--                        <button name="action_submit_draft" type="object" icon="fa-reply text-warning" string="Submit"-->
+<!--                                attrs="{'invisible': [('button_visible', '!=', 'employee')]}"/>-->
+<!--                        <button name="action_pm_approve" type="object" class="btn btn-primary" string="PM Approve"-->
+<!--                                attrs="{'invisible': [('button_visible', '!=', 'pm')]}"/>-->
+<!--                        <button name="action_dl_approve" type="object" class="btn btn-primary" string="DL Approve"-->
+<!--                                attrs="{'invisible': [('button_visible', '!=', 'dl')]}"/>-->
+<!--                        <button name="action_refuse" type="object" class="btn btn-primary" string="Refuse"-->
+<!--                                attrs="{'invisible': [('button_visible', 'not in', ['pm', 'dl'])]}"/>-->
+<!--                        <field name="button_visible" invisible="1"/>-->
+
+                        <button name="action_submit_draft" type="object" icon="fa-reply text-warning" string="Submit"
+                                states="draft" groups="ot_management.group_employee"/>
+                        <button name="action_pm_approve" type="object" class="btn btn-primary" string="PM Approve"
+                                states="to_approve" groups="ot_management.group_project_manager"/>
+                        <button name="action_dl_approve" type="object" class="btn btn-primary" string="DL Approve"
+                                states="pm_approved" groups="ot_management.group_department_lead"/>
+                        <button name="action_pm_refuse" type="object" class="btn btn-primary" string="Refuse"
+                                states="to_approve" groups="ot_management.group_project_manager"/>
+                        <button name="action_dl_refuse" type="object" class="btn btn-primary" string="Refuse"
+                                states="pm_approved" groups="ot_management.group_department_lead"/>
                         <field name="state" widget="statusbar"/>
                     </header>
                     <group col="2">
@@ -77,7 +92,8 @@
                             <field name="request_line_ids">
                                 <tree editable="bottom"
                                       decoration-danger="state in ('draft', 'to_approve', 'refused')"
-                                      decoration-success="state in ('pm_approved', 'dl_approved')">
+                                      decoration-success="state in ('pm_approved', 'dl_approved')"
+                                      decoration-bf="state in ('dl_approved', 'refused')">
                                     <field name="start_time"/>
                                     <field name="end_time"/>
                                     <field name="ot_category" readonly="1" force_save="1"/>
@@ -117,7 +133,7 @@
             <field name="name">ot.request.line.tree</field>
             <field name="model">ot.request.line</field>
             <field name="arch" type="xml">
-                <tree>
+                <tree create="0">
                     <field name="employee_id"/>
                     <field name="is_intern"/>
                     <field name="project_id"/>
@@ -133,26 +149,12 @@
             </field>
         </record>
 
-<!--        <record-->
-<!--            id="ot_request_line_form"-->
-<!--            model="ir.ui.view">-->
-<!--            <field name="name">ot.request.line.form</field>-->
-<!--            <field name="model">ot.request.line</field>-->
-<!--            <field name="arch" type="xml">-->
-<!--                <form>-->
-<!--                    <group>-->
-<!--                        <field name="name"/>-->
-<!--                    </group>-->
-<!--                </form>-->
-<!--            </field>-->
-<!--        </record>-->
-
         <record
             id="ot_request_line_action"
             model="ir.actions.act_window">
             <field name="name">Request Lines</field>
             <field name="res_model">ot.request.line</field>
-            <field name="view_mode">tree,form</field>
+            <field name="view_mode">tree</field>
         </record>
 
         <menuitem

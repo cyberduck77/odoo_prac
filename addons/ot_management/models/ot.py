@@ -1,5 +1,5 @@
 from odoo import models, fields, api
-from odoo.exceptions import ValidationError
+from odoo.exceptions import ValidationError, AccessError
 from odoo.tools import float_round
 
 
@@ -19,12 +19,17 @@ class Registration(models.Model):
         url_res = base + '/web#id=%d&view_type=form&model=%s' % (self.id, self._name)
         return url_res
 
-    # @api.model
-    # def create(self, values):
-    #     # if 'request_line_ids' not in values:
-    #     #     values['request_line_ids'] = False
-    #     res = super(Registration, self).create(values)
-    #     return res
+    @api.multi
+    def write(self, vals):
+        if any(state != 'draft' for state in set(self.mapped('state'))) and self.env.uid == self.employee_id.user_id.id:
+            raise AccessError("No edit if not in draft state")
+        return super().write(vals)
+
+    @api.multi
+    def unlink(self):
+        if any(state != 'draft' for state in set(self.mapped('state'))) and self.env.uid == self.employee_id.user_id.id:
+            raise AccessError("No deletion if not in draft state")
+        return super().unlink()
 
     def action_submit_draft(self):
         if self.state == 'draft' and self.env.uid == self.employee_id.user_id.id:
@@ -32,7 +37,7 @@ class Registration(models.Model):
             template = self.env.ref('ot_management.submit_ot_mail_template')
             template.sudo().send_mail(self.id, force_send=True)
         else:
-            raise ValidationError("You're not allowed to submit this draft")
+            raise AccessError("You're not allowed to submit this draft")
         return True
 
     def action_pm_approve(self):
@@ -41,7 +46,7 @@ class Registration(models.Model):
             template = self.env.ref('ot_management.pm_approve_mail_template')
             template.sudo().send_mail(self.id, force_send=True)
         else:
-            raise ValidationError("You're not allowed to approve this request")
+            raise AccessError("You're not allowed to approve this request")
         return True
 
     def action_dl_approve(self):
@@ -50,18 +55,25 @@ class Registration(models.Model):
             template = self.env.ref('ot_management.dl_approve_mail_template')
             template.sudo().send_mail(self.id, force_send=True)
         else:
-            raise ValidationError("You're not allowed to approve this request")
+            raise AccessError("You're not allowed to approve this request")
         return True
 
-    def action_refuse(self):
-        if (self.state == 'pm_approved' or self.state == 'to_approve') and \
-                (self.env.uid == self.lead_id.user_id.id or self.env.uid == self.project_id.user_id.id) and \
-                self.env.uid == self.approve_id.user_id.id:
+    def action_pm_refuse(self):
+        if self.state == 'to_approve' and self.env.uid == self.project_id.user_id.id:
             self._set_state('refused')
-            template = self.env.ref('ot_management.dl_approve_mail_template')
+            template = self.env.ref('ot_management.refuse_mail_template')
             template.sudo().send_mail(self.id, force_send=True)
         else:
-            raise ValidationError("You're not allowed to refuse this request")
+            raise AccessError("You're not allowed to refuse this request")
+        return True
+
+    def action_dl_refuse(self):
+        if self.state == 'pm_approved' and self.env.uid == self.lead_id.user_id.id:
+            self._set_state('refused')
+            template = self.env.ref('ot_management.refuse_mail_template')
+            template.sudo().send_mail(self.id, force_send=True)
+        else:
+            raise AccessError("You're not allowed to refuse this request")
         return True
 
     @api.onchange('project_id', 'employee_id')
@@ -70,7 +82,7 @@ class Registration(models.Model):
             if record.project_id and record.employee_id:
                 record.name = record.employee_id.name + ' - ' + record.project_id.name
 
-    @api.depends('lead_id', 'project_id')
+    @api.depends('state', 'lead_id', 'project_id')
     def _compute_approve(self):
         for record in self:
             if record.project_id:
@@ -79,10 +91,8 @@ class Registration(models.Model):
                         [('user_id', '=', record.project_id.user_id.id)],
                         limit=1
                     )
-                elif record.state == 'pm_approved':
+                elif record.state == 'pm_approved' or record.state == 'dl_approved' or record.state == 'refused':
                     record.approve_id = record.lead_id
-                elif record.state == 'dl_approved' or record.state == 'refused':
-                    record.approve_id = False
 
     @api.depends('request_line_ids')
     def _compute_total_ot(self):
@@ -99,17 +109,16 @@ class Registration(models.Model):
             if record.request_line_ids:
                 record.ot_month = record.request_line_ids[0].start_time.strftime('%m/%Y')
 
-    @api.depends('state')
-    def _compute_button_visible(self):
-        for record in self:
-            if record.state == 'draft' and self.env.uid == record.employee_id.user_id.id:
-                record.button_visible = 0
-            elif record.state == 'to_approve' and self.env.uid == record.project_id.user_id.id:
-                record.button_visible = 1
-            elif record.state == 'pm_approved' and self.env.uid == record.lead_id.user_id.id:
-                record.button_visible = 2
-            else:
-                record.button_visible = -1
+    # @api.depends('state')
+    # def _compute_button_visible(self):
+    #     for record in self:
+    #         record.button_visible = 'none'
+    #         if record.state == 'draft' and self.env.uid == record.employee_id.user_id.id:
+    #             record.button_visible = 'employee'
+    #         elif record.state == 'to_approve' and self.env.uid == record.project_id.user_id.id:
+    #             record.button_visible = 'pm'
+    #         elif record.state == 'pm_approved' and self.env.uid == record.lead_id.user_id.id:
+    #             record.button_visible = 'dl'
 
     name = fields.Char(default='')
     state = fields.Selection(
@@ -128,19 +137,26 @@ class Registration(models.Model):
                                   required=True)
     lead_id = fields.Many2one(
         'hr.employee',
-        'Department lead',
-        related='employee_id.department_id.manager_id')
+        string='Department lead',
+        related='employee_id.department_id.manager_id',
+        related_sudo=True)
     approve_id = fields.Many2one('hr.employee',
-                                 'Approver',
+                                 string='Approver',
                                  compute='_compute_approve',
                                  store=True,
                                  readonly=False,
-                                 required=True)
+                                 required=True,
+                                 compute_sudo=True)
     request_line_ids = fields.One2many('ot.request.line',
                                        'registration_id')
-    total_ot = fields.Float('Total OT hours', compute='_compute_total_ot', store=True)
-    ot_month = fields.Char('OT month', compute='_compute_ot_month')
-    button_visible = fields.Integer(compute='_compute_button_visible')
+    total_ot = fields.Float(string='Total OT hours', compute='_compute_total_ot', store=True)
+    ot_month = fields.Char(string='OT month', compute='_compute_ot_month')
+    # button_visible = fields.Selection([('none', 'None'),
+    #                                    ('employee', 'Employee'),
+    #                                    ('pm', 'Pm'),
+    #                                    ('dl', 'Dl')],
+    #                                   compute='_compute_button_visible',
+    #                                   compute_sudo=True)
 
     @api.constrains('request_line_ids', 'employee_id')
     def _check_request_lines(self):
@@ -176,8 +192,8 @@ class RequestLine(models.Model):
             record.is_intern = True
 
     name = fields.Char(related='registration_id.name')
-    start_time = fields.Datetime('From', default=fields.Datetime().today(), required=True)
-    end_time = fields.Datetime('To', default=fields.Datetime().today(), required=True)
+    start_time = fields.Datetime(string='From', default=fields.Datetime().today(), required=True)
+    end_time = fields.Datetime(string='To', default=fields.Datetime().today(), required=True)
     ot_category = fields.Selection(
         [('undefined', 'Undefined'),
          ('weekend', 'Weekend'),
@@ -186,8 +202,8 @@ class RequestLine(models.Model):
         default='undefined'
     )
     from_home = fields.Boolean(string='WFH')
-    ot_hours = fields.Float('OT hours', compute='_compute_ot_hours', store=True)
-    job_taken = fields.Char('Job taken', default='N/A', required=True)
+    ot_hours = fields.Float(string='OT hours', compute='_compute_ot_hours', store=True)
+    job_taken = fields.Char(string='Job taken', default='N/A', required=True)
     state = fields.Selection(
         [('draft', 'Draft'),
          ('to_approve', 'To Approve'),
@@ -195,27 +211,31 @@ class RequestLine(models.Model):
          ('dl_approved', 'DL Approved'),
          ('refused', 'Refused')],
         related='registration_id.state',
+        related_sudo=True,
         store=True)
-    late_approved = fields.Boolean('Late approved')
-    hr_notes = fields.Text('HR notes', readonly=True)
-    attendance_notes = fields.Text('Attendance notes', readonly=True)
-    warning = fields.Char(default='Exceed OT plan', readonly=True)
+    late_approved = fields.Boolean(string='Late approved')
+    hr_notes = fields.Text(string='HR notes', readonly=True)
+    attendance_notes = fields.Text(string='Attendance notes', readonly=True)
+    warning = fields.Char(string='Warning', default='Exceed OT plan', readonly=True)
     registration_id = fields.Many2one('ot.registration',
                                       required=True,
                                       ondelete='cascade')
-    employee_id = fields.Many2one(related='registration_id.employee_id')
-    project_id = fields.Many2one(related='registration_id.project_id')
-    is_intern = fields.Boolean(compute='_compute_intern')
+    employee_id = fields.Many2one(string='By Employee', related='registration_id.employee_id')
+    project_id = fields.Many2one(string='Project', related='registration_id.project_id')
+    is_intern = fields.Boolean(string='Is Intern?', compute='_compute_intern', store=True)
 
     @api.constrains('start_time', 'end_time')
     def _check_valid_time(self):
         for record in self:
+            overlapping_records = self.search([
+                ('id', '!=', record.id),
+                ('start_time', '<', record.end_time),
+                ('end_time', '>', record.start_time)
+            ])
+            if overlapping_records:
+                raise ValidationError("Overlapping dates found.")
             if (record.start_time.date() - record.end_time.date()).total_seconds() != 0:
                 raise ValidationError("Invalid OT request time")
-
-    @api.constrains('start_time', 'end_time')
-    def _check_time_positive(self):
-        for record in self:
             if (record.end_time - record.start_time).total_seconds() <= 0:
                 raise ValidationError("OT hours must be larger than 0")
 
@@ -224,11 +244,3 @@ class RequestLine(models.Model):
         for record in self:
             if record.end_time > fields.Datetime.now():
                 raise ValidationError("Cannot plan OT in the future")
-
-
-class Employee(models.Model):
-    _inherit = 'hr.employee'
-
-
-class Project(models.Model):
-    _inherit = 'project.project'

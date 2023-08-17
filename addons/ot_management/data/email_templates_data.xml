@@ -3,8 +3,8 @@
     <data noupdate="1">
         <record id="submit_ot_mail_template" model="mail.template">
             <field name="name">Submit OT mail template</field>
-            <field name="email_from">${object.employee_id.name and object.employee_id.company_id.email or ''}</field>
-            <field name="email_to">${object.approve_id.name and object.approve_id.company_id.email or ''}</field>
+            <field name="email_from">${object.employee_id.name and object.employee_id.work_email or ''}</field>
+            <field name="email_to">${object.approve_id.name and object.approve_id.work_email or ''}</field>
             <field name="subject">An OT request have been submitted to you</field>
             <field name="partner_to">${object.employee_id.address_home_id.id}</field>
             <field name="model_id" ref="ot_management.model_ot_registration"/>
@@ -20,8 +20,8 @@
 
         <record id="pm_approve_mail_template" model="mail.template">
             <field name="name">PM approve mail template</field>
-            <field name="email_from">${object.approve_id.name and object.approve_id.company_id.email or ''}</field>
-            <field name="email_to">${object.employee_id.name and object.employee_id.company_id.email or ''}</field>
+            <field name="email_from">${object.approve_id.name and object.approve_id.work_email or ''}</field>
+            <field name="email_to">${object.employee_id.name and object.employee_id.work_email or ''}</field>
             <field name="subject">Your OT request have been approved by PM</field>
             <field name="partner_to">${object.approve_id.address_home_id.id}</field>
             <field name="model_id" ref="ot_management.model_ot_registration"/>
@@ -37,8 +37,8 @@
 
         <record id="dl_approve_mail_template" model="mail.template">
             <field name="name">DL approve mail template</field>
-            <field name="email_from">${object.approve_id.name and object.approve_id.company_id.email or ''}</field>
-            <field name="email_to">${object.employee_id.name and object.employee_id.company_id.email or ''}</field>
+            <field name="email_from">${object.approve_id.name and object.approve_id.work_email or ''}</field>
+            <field name="email_to">${object.employee_id.name and object.employee_id.work_email or ''}</field>
             <field name="subject">Your OT request have been approved by DL</field>
             <field name="partner_to">${object.approve_id.address_home_id.id}</field>
             <field name="model_id" ref="ot_management.model_ot_registration"/>
@@ -54,8 +54,8 @@
 
         <record id="refuse_mail_template" model="mail.template">
             <field name="name">Refuse mail template</field>
-            <field name="email_from">${object.approve_id.name and object.approve_id.company_id.email or ''}</field>
-            <field name="email_to">${object.employee_id.name and object.employee_id.company_id.email or ''}</field>
+            <field name="email_from">${object.approve_id.name and object.approve_id.work_email or ''}</field>
+            <field name="email_to">${object.employee_id.name and object.employee_id.work_email or ''}</field>
             <field name="subject">Your OT request have been refused</field>
             <field name="partner_to">${object.approve_id.address_home_id.id}</field>
             <field name="model_id" ref="ot_management.model_ot_registration"/>
