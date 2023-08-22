@@ -51,26 +51,15 @@
             <field name="arch" type="xml">
                 <form>
                     <header>
-<!--                        <button name="action_submit_draft" type="object" icon="fa-reply text-warning" string="Submit"-->
-<!--                                attrs="{'invisible': [('button_visible', '!=', 'employee')]}"/>-->
-<!--                        <button name="action_pm_approve" type="object" class="btn btn-primary" string="PM Approve"-->
-<!--                                attrs="{'invisible': [('button_visible', '!=', 'pm')]}"/>-->
-<!--                        <button name="action_dl_approve" type="object" class="btn btn-primary" string="DL Approve"-->
-<!--                                attrs="{'invisible': [('button_visible', '!=', 'dl')]}"/>-->
-<!--                        <button name="action_refuse" type="object" class="btn btn-primary" string="Refuse"-->
-<!--                                attrs="{'invisible': [('button_visible', 'not in', ['pm', 'dl'])]}"/>-->
-<!--                        <field name="button_visible" invisible="1"/>-->
-
                         <button name="action_submit_draft" type="object" icon="fa-reply text-warning" string="Submit"
-                                states="draft" groups="ot_management.group_employee"/>
+                                attrs="{'invisible': [('button_visible', '!=', 'employee')]}"/>
                         <button name="action_pm_approve" type="object" class="btn btn-primary" string="PM Approve"
-                                states="to_approve" groups="ot_management.group_project_manager"/>
+                                attrs="{'invisible': [('button_visible', '!=', 'pm')]}"/>
                         <button name="action_dl_approve" type="object" class="btn btn-primary" string="DL Approve"
-                                states="pm_approved" groups="ot_management.group_department_lead"/>
-                        <button name="action_pm_refuse" type="object" class="btn btn-primary" string="Refuse"
-                                states="to_approve" groups="ot_management.group_project_manager"/>
-                        <button name="action_dl_refuse" type="object" class="btn btn-primary" string="Refuse"
-                                states="pm_approved" groups="ot_management.group_department_lead"/>
+                                attrs="{'invisible': [('button_visible', '!=', 'dl')]}"/>
+                        <button name="action_refuse" type="object" class="btn btn-primary" string="Refuse"
+                                attrs="{'invisible': [('button_visible', 'not in', ['pm', 'dl'])]}"/>
+                        <field name="button_visible" invisible="1"/>
                         <field name="state" widget="statusbar"/>
                     </header>
                     <group col="2">

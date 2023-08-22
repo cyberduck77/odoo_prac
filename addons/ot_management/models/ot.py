@@ -19,17 +19,17 @@ class Registration(models.Model):
         url_res = base + '/web#id=%d&view_type=form&model=%s' % (self.id, self._name)
         return url_res
 
-    @api.multi
-    def write(self, vals):
-        if any(state != 'draft' for state in set(self.mapped('state'))) and self.env.uid == self.employee_id.user_id.id:
-            raise AccessError("No edit if not in draft state")
-        return super().write(vals)
-
-    @api.multi
-    def unlink(self):
-        if any(state != 'draft' for state in set(self.mapped('state'))) and self.env.uid == self.employee_id.user_id.id:
-            raise AccessError("No deletion if not in draft state")
-        return super().unlink()
+    # @api.multi
+    # def write(self, vals):
+    #     if any(state != 'draft' for state in set(self.mapped('state'))) and self.env.uid == self.employee_id.user_id.id:
+    #         raise AccessError("No edit if not in draft state")
+    #     return super().write(vals)
+    #
+    # @api.multi
+    # def unlink(self):
+    #     if any(state != 'draft' for state in set(self.mapped('state'))) and self.env.uid == self.employee_id.user_id.id:
+    #         raise AccessError("No deletion if not in draft state")
+    #     return super().unlink()
 
     def action_submit_draft(self):
         if self.state == 'draft' and self.env.uid == self.employee_id.user_id.id:
@@ -109,16 +109,16 @@ class Registration(models.Model):
             if record.request_line_ids:
                 record.ot_month = record.request_line_ids[0].start_time.strftime('%m/%Y')
 
-    # @api.depends('state')
-    # def _compute_button_visible(self):
-    #     for record in self:
-    #         record.button_visible = 'none'
-    #         if record.state == 'draft' and self.env.uid == record.employee_id.user_id.id:
-    #             record.button_visible = 'employee'
-    #         elif record.state == 'to_approve' and self.env.uid == record.project_id.user_id.id:
-    #             record.button_visible = 'pm'
-    #         elif record.state == 'pm_approved' and self.env.uid == record.lead_id.user_id.id:
-    #             record.button_visible = 'dl'
+    @api.depends('state')
+    def _compute_button_visible(self):
+        for record in self:
+            record.button_visible = 'none'
+            if record.state == 'draft' and self.env.uid == record.employee_id.user_id.id:
+                record.button_visible = 'employee'
+            elif record.state == 'to_approve' and self.env.uid == record.project_id.user_id.id:
+                record.button_visible = 'pm'
+            elif record.state == 'pm_approved' and self.env.uid == record.lead_id.user_id.id:
+                record.button_visible = 'dl'
 
     name = fields.Char(default='')
     state = fields.Selection(
@@ -131,8 +131,7 @@ class Registration(models.Model):
         required=True
     )
     project_id = fields.Many2one('project.project', required=True)
-    employee_id = fields.Many2one('hr.employee',
-                                  default=_get_employee_id,
+    employee_id = fields.Many2one('hr.employee', default=_get_employee_id,
                                   readonly=True,
                                   required=True)
     lead_id = fields.Many2one(
@@ -140,9 +139,7 @@ class Registration(models.Model):
         string='Department lead',
         related='employee_id.department_id.manager_id',
         related_sudo=True)
-    approve_id = fields.Many2one('hr.employee',
-                                 string='Approver',
-                                 compute='_compute_approve',
+    approve_id = fields.Many2one('hr.employee', string='Approver', compute='_compute_approve',
                                  store=True,
                                  readonly=False,
                                  required=True,
@@ -151,12 +148,12 @@ class Registration(models.Model):
                                        'registration_id')
     total_ot = fields.Float(string='Total OT hours', compute='_compute_total_ot', store=True)
     ot_month = fields.Char(string='OT month', compute='_compute_ot_month')
-    # button_visible = fields.Selection([('none', 'None'),
-    #                                    ('employee', 'Employee'),
-    #                                    ('pm', 'Pm'),
-    #                                    ('dl', 'Dl')],
-    #                                   compute='_compute_button_visible',
-    #                                   compute_sudo=True)
+    button_visible = fields.Selection([('none', 'None'),
+                                       ('employee', 'Employee'),
+                                       ('pm', 'Pm'),
+                                       ('dl', 'Dl')],
+                                      compute='_compute_button_visible',
+                                      compute_sudo=True)
 
     @api.constrains('request_line_ids', 'employee_id')
     def _check_request_lines(self):
@@ -217,9 +214,7 @@ class RequestLine(models.Model):
     hr_notes = fields.Text(string='HR notes', readonly=True)
     attendance_notes = fields.Text(string='Attendance notes', readonly=True)
     warning = fields.Char(string='Warning', default='Exceed OT plan', readonly=True)
-    registration_id = fields.Many2one('ot.registration',
-                                      required=True,
-                                      ondelete='cascade')
+    registration_id = fields.Many2one('ot.registration', required=True, ondelete='cascade')
     employee_id = fields.Many2one(string='By Employee', related='registration_id.employee_id')
     project_id = fields.Many2one(string='Project', related='registration_id.project_id')
     is_intern = fields.Boolean(string='Is Intern?', compute='_compute_intern', store=True)

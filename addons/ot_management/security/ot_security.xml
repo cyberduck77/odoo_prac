@@ -10,31 +10,71 @@
     <record id="group_department_lead" model="res.groups">
         <field name="name">Department Lead</field>
         <field name="category_id" ref="base.module_category_overtime"/>
-        <field name="implied_ids" eval="[(4, ref('base.group_user'))]"/>
+        <field name="implied_ids" eval="[(4, ref('ot_management.group_employee'))]"/>
         <field name="comment">Department lead group</field>
     </record>
 
     <record id="group_project_manager" model="res.groups">
         <field name="name">Project Manager</field>
         <field name="category_id" ref="base.module_category_overtime"/>
-        <field name="implied_ids" eval="[(4, ref('base.group_user'))]"/>
+        <field name="implied_ids" eval="[(4, ref('ot_management.group_employee'))]"/>
         <field name="comment">Project manager group</field>
     </record>
 
 <data noupdate="1">
-    <record id="ot_request_line_employee_rule" model="ir.rule">
-        <field name="name">ot.request.line: employee accesses own</field>
-        <field name="model_id" ref="model_ot_request_line"/>
-        <field name="groups" eval="[(4, ref('ot_management.group_employee'))]"/>
+    <record id="ot_registration_rule_global_one" model="ir.rule">
+        <field name="name">ot.registration: global rule</field>
+        <field name="model_id" ref="model_ot_registration"/>
         <field name="domain_force">[('employee_id.user_id','=',user.id)]</field>
+        <field name="perm_write" eval="0"/>
+        <field name="perm_create" eval="0"/>
+        <field name="perm_unlink" eval="0"/>
     </record>
 
-    <record id="ot_registration_employee_rule" model="ir.rule">
-        <field name="name">ot.registration: employee access own</field>
+    <record id="ot_registration_rule_global_two" model="ir.rule">
+        <field name="name">ot.registration: global rule</field>
         <field name="model_id" ref="model_ot_registration"/>
-        <field name="groups" eval="[(4, ref('ot_management.group_employee'))]"/>
-        <field name="domain_force">[('employee_id.user_id','=',user.id)]</field>
+        <field name="domain_force">[('employee_id.user_id','=',user.id),('state','=','draft')]</field>
     </record>
+
+<!--    <record id="ot_request_line_rule_employee" model="ir.rule">-->
+<!--        <field name="name">ot.request.line: employee accesses own</field>-->
+<!--        <field name="model_id" ref="model_ot_request_line"/>-->
+<!--        <field name="groups" eval="[(4, ref('ot_management.group_employee'))]"/>-->
+<!--        <field name="domain_force">[('employee_id.user_id','=',user.id)]</field>-->
+<!--        <field name="perm_write" eval="0"/>-->
+<!--        <field name="perm_create" eval="0"/>-->
+<!--        <field name="perm_unlink" eval="0"/>-->
+<!--    </record>-->
+
+<!--    <record id="ot_request_line_rule_employee_refused" model="ir.rule">-->
+<!--        <field name="name">ot.request.line: employee accesses own</field>-->
+<!--        <field name="model_id" ref="model_ot_request_line"/>-->
+<!--        <field name="groups" eval="[(4, ref('ot_management.group_employee'))]"/>-->
+<!--        <field name="domain_force">[('employee_id.user_id','=',user.id),('state','=','refused')]</field>-->
+<!--    </record>-->
+
+<!--    <record id="ot_request_line_rule_employee" model="ir.rule">-->
+<!--        <field name="name">ot.request.line: employee accesses own</field>-->
+<!--        <field name="model_id" ref="model_ot_request_line"/>-->
+<!--        <field name="groups" eval="[(4, ref('ot_management.group_employee'))]"/>-->
+<!--        <field name="domain_force">[('employee_id.user_id','=',user.id)]</field>-->
+
+<!--    </record>-->
+
+<!--    <record id="ot_registration_rule_employee" model="ir.rule">-->
+<!--        <field name="name">ot.registration: employee access own</field>-->
+<!--        <field name="model_id" ref="model_ot_registration"/>-->
+<!--        <field name="groups" eval="[(4, ref('ot_management.group_employee'))]"/>-->
+<!--        <field name="domain_force">[('employee_id.user_id','=',user.id),('state','=','draft')]</field>-->
+<!--    </record>-->
+
+<!--    <record id="ot_registration_rule_employee" model="ir.rule">-->
+<!--        <field name="name">ot.registration: employee access own</field>-->
+<!--        <field name="model_id" ref="model_ot_registration"/>-->
+<!--        <field name="groups" eval="[(4, ref('ot_management.group_employee'))]"/>-->
+<!--        <field name="domain_force">[('employee_id.user_id','=',user.id)]</field>-->
+<!--    </record>-->
 
     <record id="ot_request_line_lead_rule" model="ir.rule">
         <field name="name">ot.request.line: department lead accesses own</field>
