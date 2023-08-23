@@ -11,25 +11,10 @@ class Registration(models.Model):
         employee = self.env['hr.employee'].search([('user_id', '=', self.env.uid)], limit=1)
         return employee
 
-    def _set_state(self, new_state):
-        self.sudo().write({'state': new_state})
-
     def get_url(self):
         base = self.env['ir.config_parameter'].get_param('web.base.url')
         url_res = base + '/web#id=%d&view_type=form&model=%s' % (self.id, self._name)
         return url_res
-
-    # @api.multi
-    # def write(self, vals):
-    #     if any(state != 'draft' for state in set(self.mapped('state'))) and self.env.uid == self.employee_id.user_id.id:
-    #         raise AccessError("No edit if not in draft state")
-    #     return super().write(vals)
-    #
-    # @api.multi
-    # def unlink(self):
-    #     if any(state != 'draft' for state in set(self.mapped('state'))) and self.env.uid == self.employee_id.user_id.id:
-    #         raise AccessError("No deletion if not in draft state")
-    #     return super().unlink()
 
     def action_submit_draft(self):
         if self.state == 'draft' and self.env.uid == self.employee_id.user_id.id:
@@ -40,9 +25,16 @@ class Registration(models.Model):
             raise AccessError("You're not allowed to submit this draft")
         return True
 
+    def action_turn_to_draft(self):
+        if self.state == 'refused' and self.env.uid == self.employee_id.user_id.id:
+            self.state = 'draft'
+        else:
+            raise AccessError("You're not allowed to convert this request back to draft")
+        return True
+
     def action_pm_approve(self):
-        if self.state == 'to_approve' and self.env.uid == self.project_id.user_id.id:
-            self._set_state('pm_approved')
+        if self.state == 'to_approve' and self.env.uid == self.approve_id.user_id.id:
+            self.state = 'pm_approved'
             template = self.env.ref('ot_management.pm_approve_mail_template')
             template.sudo().send_mail(self.id, force_send=True)
         else:
@@ -50,26 +42,17 @@ class Registration(models.Model):
         return True
 
     def action_dl_approve(self):
-        if self.state == 'pm_approved' and self.env.uid == self.lead_id.user_id.id:
-            self._set_state('dl_approved')
+        if self.state == 'pm_approved' and self.env.uid == self.approve_id.user_id.id:
+            self.state = 'dl_approved'
             template = self.env.ref('ot_management.dl_approve_mail_template')
             template.sudo().send_mail(self.id, force_send=True)
         else:
             raise AccessError("You're not allowed to approve this request")
         return True
 
-    def action_pm_refuse(self):
-        if self.state == 'to_approve' and self.env.uid == self.project_id.user_id.id:
-            self._set_state('refused')
-            template = self.env.ref('ot_management.refuse_mail_template')
-            template.sudo().send_mail(self.id, force_send=True)
-        else:
-            raise AccessError("You're not allowed to refuse this request")
-        return True
-
-    def action_dl_refuse(self):
-        if self.state == 'pm_approved' and self.env.uid == self.lead_id.user_id.id:
-            self._set_state('refused')
+    def action_refuse(self):
+        if self.state == 'to_approve' and self.env.uid == self.approve_id.user_id.id:
+            self.state = 'refused'
             template = self.env.ref('ot_management.refuse_mail_template')
             template.sudo().send_mail(self.id, force_send=True)
         else:
@@ -91,17 +74,19 @@ class Registration(models.Model):
                         [('user_id', '=', record.project_id.user_id.id)],
                         limit=1
                     )
-                elif record.state == 'pm_approved' or record.state == 'dl_approved' or record.state == 'refused':
+                elif record.state == 'pm_approved' or record.state == 'dl_approved':
                     record.approve_id = record.lead_id
+                elif record.state == 'refused':
+                    record.approve_id = False
 
     @api.depends('request_line_ids')
-    def _compute_total_ot(self):
+    def _compute_total_hours(self):
         for record in self:
             if record.request_line_ids:
                 res = 0
                 for line in record.request_line_ids:
                     res += line.ot_hours
-                record.total_ot = res
+                record.total_hours = res
 
     @api.depends('request_line_ids')
     def _compute_ot_month(self):
@@ -114,11 +99,23 @@ class Registration(models.Model):
         for record in self:
             record.button_visible = 'none'
             if record.state == 'draft' and self.env.uid == record.employee_id.user_id.id:
-                record.button_visible = 'employee'
-            elif record.state == 'to_approve' and self.env.uid == record.project_id.user_id.id:
+                record.button_visible = 'draft'
+            if record.state == 'refused' and self.env.uid == record.employee_id.user_id.id:
+                record.button_visible = 'refused'
+            elif record.state == 'to_approve' and self.env.uid == record.approve_id.user_id.id:
                 record.button_visible = 'pm'
-            elif record.state == 'pm_approved' and self.env.uid == record.lead_id.user_id.id:
+            elif record.state == 'pm_approved' and self.env.uid == record.approve_id.user_id.id:
                 record.button_visible = 'dl'
+
+    @api.depends('state')
+    def _compute_css(self):
+        for record in self:
+            if record.state != 'draft':
+                record.change_css = '<style>.o_form_button_edit {display: none !important;}' \
+                                    '.o_dropdown_toggler_btn {display: none !important;}' \
+                                    '.o_form_button_create {display: none !important;}</style>'
+            else:
+                record.change_css = False
 
     name = fields.Char(default='')
     state = fields.Selection(
@@ -141,19 +138,19 @@ class Registration(models.Model):
         related_sudo=True)
     approve_id = fields.Many2one('hr.employee', string='Approver', compute='_compute_approve',
                                  store=True,
-                                 readonly=False,
-                                 required=True,
                                  compute_sudo=True)
     request_line_ids = fields.One2many('ot.request.line',
                                        'registration_id')
-    total_ot = fields.Float(string='Total OT hours', compute='_compute_total_ot', store=True)
+    total_hours = fields.Float(string='Total OT hours', compute='_compute_total_hours', store=True)
     ot_month = fields.Char(string='OT month', compute='_compute_ot_month')
     button_visible = fields.Selection([('none', 'None'),
-                                       ('employee', 'Employee'),
+                                       ('draft', 'Draft'),
+                                       ('refused','Refused'),
                                        ('pm', 'Pm'),
                                        ('dl', 'Dl')],
                                       compute='_compute_button_visible',
                                       compute_sudo=True)
+    change_css = fields.Html(string='CSS', sanitize=False, compute='_compute_css', store=False)
 
     @api.constrains('request_line_ids', 'employee_id')
     def _check_request_lines(self):
@@ -186,9 +183,20 @@ class RequestLine(models.Model):
     @api.depends('employee_id')
     def _compute_intern(self):
         for record in self:
-            record.is_intern = True
+            record.is_intern = False
+            if record.employee_id.job_id.name == 'Trainee':
+                record.is_intern = True
 
     name = fields.Char(related='registration_id.name')
+    state = fields.Selection(
+        [('draft', 'Draft'),
+         ('to_approve', 'To Approve'),
+         ('pm_approved', 'PM Approved'),
+         ('dl_approved', 'DL Approved'),
+         ('refused', 'Refused')],
+        related='registration_id.state',
+        related_sudo=True,
+        store=True)
     start_time = fields.Datetime(string='From', default=fields.Datetime().today(), required=True)
     end_time = fields.Datetime(string='To', default=fields.Datetime().today(), required=True)
     ot_category = fields.Selection(
@@ -201,23 +209,20 @@ class RequestLine(models.Model):
     from_home = fields.Boolean(string='WFH')
     ot_hours = fields.Float(string='OT hours', compute='_compute_ot_hours', store=True)
     job_taken = fields.Char(string='Job taken', default='N/A', required=True)
-    state = fields.Selection(
-        [('draft', 'Draft'),
-         ('to_approve', 'To Approve'),
-         ('pm_approved', 'PM Approved'),
-         ('dl_approved', 'DL Approved'),
-         ('refused', 'Refused')],
-        related='registration_id.state',
-        related_sudo=True,
-        store=True)
-    late_approved = fields.Boolean(string='Late approved')
-    hr_notes = fields.Text(string='HR notes', readonly=True)
-    attendance_notes = fields.Text(string='Attendance notes', readonly=True)
-    warning = fields.Char(string='Warning', default='Exceed OT plan', readonly=True)
-    registration_id = fields.Many2one('ot.registration', required=True, ondelete='cascade')
-    employee_id = fields.Many2one(string='By Employee', related='registration_id.employee_id')
+    late_approved = fields.Boolean(string='Late approved',
+                                   readonly=True)
+    hr_notes = fields.Text(string='HR notes',
+                           readonly=True)
+    attendance_notes = fields.Text(string='Attendance notes',
+                                   readonly=True)
+    warning = fields.Char(string='Warning', default='Exceed OT plan',
+                          readonly=True)
+    registration_id = fields.Many2one('ot.registration',
+                                      required=True,
+                                      ondelete='cascade')
+    employee_id = fields.Many2one(string='By employee', related='registration_id.employee_id')
     project_id = fields.Many2one(string='Project', related='registration_id.project_id')
-    is_intern = fields.Boolean(string='Is Intern?', compute='_compute_intern', store=True)
+    is_intern = fields.Boolean(string='Is intern?', compute='_compute_intern', store=True)
 
     @api.constrains('start_time', 'end_time')
     def _check_valid_time(self):
